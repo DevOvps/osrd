@@ -1,5 +1,6 @@
 package fr.sncf.osrd.infra.implementation.tracks.undirected;
 
+import static fr.sncf.osrd.railjson.schema.rollingstock.RJSLoadingGaugeType.*;
 import static java.lang.Math.abs;
 
 import com.google.common.collect.*;
@@ -209,10 +210,21 @@ public class UndirectedInfraBuilder {
         return builder.build();
     }
 
-    /** Returns all the gauge types compatible with the given type */
-    private Set<RJSLoadingGaugeType> getCompatibleGaugeTypes(RJSLoadingGaugeType type) {
-        // TODO
-        return Set.of(type);
+    /** Returns all the rolling stock gauge types compatible with the given track type */
+    private Set<RJSLoadingGaugeType> getCompatibleGaugeTypes(RJSLoadingGaugeType trackType) {
+        return switch (trackType) {
+            case G1 -> Set.of(G1);
+            case GA -> Sets.union(Set.of(GA), getCompatibleGaugeTypes(G1));
+            case GB -> Sets.union(Set.of(GB, FR3_3_GB_G2), getCompatibleGaugeTypes(GA));
+            case GB1 -> Sets.union(Set.of(GB1), getCompatibleGaugeTypes(GB));
+            case GC -> Sets.union(Set.of(GC), getCompatibleGaugeTypes(GB1));
+            case G2 -> Set.of(G1, G2, FR3_3_GB_G2);
+            case FR3_3 -> Set.of(FR3_3, FR3_3_GB_G2);
+            default -> {
+                warningRecorder.register(new Warning("Invalid gauge type for track: " + trackType));
+                yield Sets.newHashSet(RJSLoadingGaugeType.values());
+            }
+        };
     }
 
     /** Creates the two DoubleRangeMaps with gradient values */
